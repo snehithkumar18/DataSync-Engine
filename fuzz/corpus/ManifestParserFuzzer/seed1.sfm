@@ -1,0 +1,7 @@
+name "test_sync"
+root "/home/user/documents"
+mode "mirror"
+checksum "sha256"
+include "**/*.txt"
+include "**/*.md"
+exclude "**/node_modules/**"

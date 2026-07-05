@@ -1,0 +1,1 @@
+This is a basic text seed for DiffPlanFuzzer. Both sides represent raw snapshots which will trigger parsing exceptions.

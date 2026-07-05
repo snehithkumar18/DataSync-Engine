@@ -1,0 +1,5 @@
+{
+  "policy": "SOURCE_WINS",
+  "type": "BOTH_MODIFIED",
+  "path": "src/App.java"
+}

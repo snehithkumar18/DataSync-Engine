@@ -1,0 +1,1 @@
+path CONTAINS "Main" AND size > 1000 OR mtime >= 123456789

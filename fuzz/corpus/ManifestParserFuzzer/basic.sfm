@@ -1,0 +1,7 @@
+manifest "project" {
+  root = "."
+  include "src/**"
+  exclude "build/**"
+  checksum = "sha256"
+  mode = "mirror"
+}

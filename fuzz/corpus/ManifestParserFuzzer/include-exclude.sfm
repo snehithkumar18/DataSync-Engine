@@ -1,0 +1,9 @@
+manifest "backup" {
+  root = "/data"
+  mode = "merge"
+  checksum = "crc32"
+  preserve_permissions = false
+  include "docs/**"
+  include "images/*.png"
+  exclude "temp/**"
+}

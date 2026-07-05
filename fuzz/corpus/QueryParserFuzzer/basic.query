@@ -1,0 +1,1 @@
+type:file AND size > 1000000 AND ext:"java" AND path contains "src/main"

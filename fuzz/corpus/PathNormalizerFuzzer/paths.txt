@@ -1,0 +1,5 @@
+src\\main\\java\\..\\..\\test\\App.java
+/absolute/path/to/project/
+CON.txt
+LPT2
+normal/path/file.txt
