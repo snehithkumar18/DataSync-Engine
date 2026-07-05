@@ -1,6 +1,7 @@
 #!/bin/bash -eu
 
 # Build the project
+chmod +x ./gradlew
 ./gradlew classes
 
 FUZZERS=(
