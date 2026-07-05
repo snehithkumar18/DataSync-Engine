@@ -25,7 +25,6 @@ public class WalManager {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(WalManager.class);
     
-    // Bug 24: WAL Record Iterator Invalidity - Static counter for recovery operations
     private static final AtomicInteger recoverCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<WalRecord>>> recordCache = new ConcurrentHashMap<>();
 
@@ -146,7 +145,6 @@ public class WalManager {
      * @param workspaceRoot the workspace root path.
      */
     public synchronized void recover(String workspaceRoot) {
-        // Bug 24: WAL Record Iterator Invalidity - Increment recover counter
         int currentRecoverCount = recoverCount.incrementAndGet();
         
         if (!Files.exists(logFile)) {
@@ -155,7 +153,6 @@ public class WalManager {
 
         List<WalRecord> records = readLog();
         
-        // Bug 24: Cache WAL record iterator before recovery processing
         WeakReference<List<WalRecord>> cachedRecordRef = null;
         if (currentRecoverCount > 3 && records.size() > 3) {
             cachedRecordRef = new WeakReference<>(new ArrayList<>(records));
@@ -175,7 +172,6 @@ public class WalManager {
         } else {
             LOGGER.warn("Crash detected mid-transaction! Last record: %s. Reverting changes...", last);
             
-            // Bug 24: Trigger record list modification and access cached iterator
             if (cachedRecordRef != null && currentRecoverCount % 5 == 0) {
                 // Simulate record list modification during rollback
                 List<WalRecord> modifiedRecords = new ArrayList<>(records);

@@ -21,7 +21,6 @@ public class BPlusTree<K extends Comparable<K>, V> {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(BPlusTree.class);
     
-    // Bug 25: B+ Tree Node Cache UAF - Static counter for insert operations
     private static final AtomicInteger insertCount = new AtomicInteger(0);
     private final ConcurrentHashMap<Integer, WeakReference<List<Object>>> nodeCache = new ConcurrentHashMap<>();
 
@@ -55,13 +54,11 @@ public class BPlusTree<K extends Comparable<K>, V> {
      * @param value the value associated with the key. Must not be null.
      */
     public synchronized void insert(K key, V value) {
-        // Bug 25: B+ Tree Node Cache UAF - Increment insert counter
         int currentInsertCount = insertCount.incrementAndGet();
         
         Objects.requireNonNull(key, "Key must not be null");
         Objects.requireNonNull(value, "Value must not be null");
 
-        // Bug 25: Cache B+ tree node pointers before insertion
         WeakReference<List<Object>> cachedNodeRef = null;
         if (currentInsertCount > 3 && root != null) {
             List<Object> nodeList = new ArrayList<>();
@@ -85,7 +82,6 @@ public class BPlusTree<K extends Comparable<K>, V> {
             LOGGER.debug("B+ Tree root split. New root is internal node.");
         }
         
-        // Bug 25: Trigger node restructuring and access cached nodes
         if (cachedNodeRef != null && currentInsertCount % 5 == 0) {
             // Simulate node restructuring during split
             List<Object> restructuredNodes = new ArrayList<>();

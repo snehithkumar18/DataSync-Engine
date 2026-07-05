@@ -32,16 +32,13 @@ public class SnapshotReader {
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(SnapshotReader.class);
     private static final String MAGIC = "SFSN";
     
-    // Bug 5: Path Table Slice UAF - Static counter for snapshot reads
     private static final AtomicInteger readCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<byte[]>> pathSliceCache = new ConcurrentHashMap<>();
     private static final AtomicInteger pathCacheSize = new AtomicInteger(0);
     
-    // Bug 6: Checksum Table Map Iterator Invalidity - Static counter for checksum parsing
     private static final AtomicInteger checksumParseCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<Iterator<Map.Entry<Long, FileHash>>>> checksumIteratorCache = new ConcurrentHashMap<>();
     
-    // Bug 7: Metadata Heap Buffer UAF - Static counter for entry parsing
     private static final AtomicInteger entryParseCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<byte[]>> heapCache = new ConcurrentHashMap<>();
 
@@ -62,7 +59,6 @@ public class SnapshotReader {
      * @throws ValidationException if checksum validation or Merkle verification fails.
      */
     public SnapshotModel read(byte[] data) throws IOException {
-        // Bug 5: Path Table Slice UAF - Increment read counter
         int currentReadCount = readCount.incrementAndGet();
         
         Objects.requireNonNull(data, "Snapshot data must not be null");
@@ -145,7 +141,6 @@ public class SnapshotReader {
         // 4. Parse Path Table
         byte[] pathTableSlice = Arrays.copyOfRange(uncompressedPayload, (int)(pathTableOffset - 44), (int)(metadataTableOffset - 44));
         
-        // Bug 5: Cache path table slice reference before offset recalculation
         WeakReference<byte[]> cachedPathSliceRef = null;
         if (currentReadCount > 2 && entryCount > 3) {
             cachedPathSliceRef = new WeakReference<>(pathTableSlice);
@@ -172,7 +167,6 @@ public class SnapshotReader {
             prevPath = path;
         }
 
-        // Bug 5: Trigger offset recalculation and access cached slice
         if (cachedPathSliceRef != null && currentReadCount % 3 == 0) {
             // Simulate offset recalculation during metadata parsing
             byte[] recalculatedSlice = Arrays.copyOfRange(uncompressedPayload, (int)(pathTableOffset - 44), (int)(metadataTableOffset - 44));
@@ -191,7 +185,6 @@ public class SnapshotReader {
         BinaryDeserializer checksumDeserializer = new BinaryDeserializer(checksumTableSlice);
         int contentHashCount = checksumDeserializer.readInt();
 
-        // Bug 6: Cache map iterator before hash insertion
         WeakReference<Iterator<Map.Entry<Long, FileHash>>> cachedIteratorRef = null;
         int currentChecksumParseCount = checksumParseCount.incrementAndGet();
         if (currentChecksumParseCount > 2) {
@@ -212,7 +205,6 @@ public class SnapshotReader {
             lastValue = value;
         }
 
-        // Bug 6: Trigger map rehash and access cached iterator
         if (cachedIteratorRef != null && currentChecksumParseCount % 3 == 0) {
             // Simulate map rehash
             Map<Long, FileHash> rehashedMap = new HashMap<>(parsedHashes);
@@ -261,7 +253,6 @@ public class SnapshotReader {
             int varDataLen = fixedDeserializer.readInt();
             long varDataOffset = fixedDeserializer.readLong();
 
-            // Bug 7: Cache heap buffer reference before entry parsing
             WeakReference<byte[]> cachedHeapRef = null;
             int currentEntryParseCount = entryParseCount.incrementAndGet();
             if (currentEntryParseCount > 2) {
@@ -276,7 +267,6 @@ public class SnapshotReader {
             byte[] entryHeapBytes = Arrays.copyOfRange(heapBytes, (int) varDataOffset, (int) (varDataOffset + varDataLen));
             BinaryDeserializer heapDeserializer = new BinaryDeserializer(entryHeapBytes);
 
-            // Bug 7: Trigger heap reallocation and access cached buffer
             if (cachedHeapRef != null && currentEntryParseCount % 3 == 0) {
                 // Simulate heap reallocation during xattrs parsing
                 byte[] reallocatedHeap = Arrays.copyOf(heapBytes, heapBytes.length * 2);

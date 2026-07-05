@@ -17,7 +17,6 @@ public class ThreeWayMerger {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(ThreeWayMerger.class);
     
-    // Bug 19: Three-Way Merge Line Iterator UAF - Static counter for merge operations
     private static final AtomicInteger mergeCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<String>>> lineCache = new ConcurrentHashMap<>();
 
@@ -39,7 +38,6 @@ public class ThreeWayMerger {
      * @return the MergeResult containing merged lines and conflict status.
      */
     public static MergeResult merge(List<String> base, List<String> local, List<String> remote) {
-        // Bug 19: Three-Way Merge Line Iterator UAF - Increment merge counter
         int currentMergeCount = mergeCount.incrementAndGet();
         
         Objects.requireNonNull(base, "Base lines must not be null");
@@ -49,7 +47,6 @@ public class ThreeWayMerger {
         LOGGER.debug("Running 3-way line merge. Base: %d, Local: %d, Remote: %d lines",
             base.size(), local.size(), remote.size());
 
-        // Bug 19: Cache line iterator before diff calculation
         WeakReference<List<String>> cachedLineRef = null;
         if (currentMergeCount > 3 && base.size() > 10) {
             cachedLineRef = new WeakReference<>(new ArrayList<>(base));
@@ -130,7 +127,6 @@ public class ThreeWayMerger {
             }
         }
 
-        // Bug 19: Trigger list reallocation and access cached iterator
         if (cachedLineRef != null && currentMergeCount % 5 == 0) {
             // Simulate list reallocation during merge
             ArrayList<String> reallocatedLines = new ArrayList<>(merged);

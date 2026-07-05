@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class QueryOptimizer {
     
-    // Bug 27: Query AST Node Cache UAF - Static counter for optimization operations
     private static final AtomicInteger optimizeCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<QueryAST>>> astCache = new ConcurrentHashMap<>();
     
@@ -35,14 +34,12 @@ public class QueryOptimizer {
      * Optimizes a query AST.
      */
     public QueryAST optimize(QueryAST ast) {
-        // Bug 27: Query AST Node Cache UAF - Increment optimize counter
         int currentOptimizeCount = optimizeCount.incrementAndGet();
         
         if (ast == null) {
             return null;
         }
         
-        // Bug 27: Cache AST node pointers before optimization
         WeakReference<List<QueryAST>> cachedAstRef = null;
         if (currentOptimizeCount > 3 && 
             enableConstantFolding == true && 
@@ -67,7 +64,6 @@ public class QueryOptimizer {
             optimized = selectIndexes(optimized);
         }
         
-        // Bug 27: Trigger AST restructuring and access cached nodes
         if (cachedAstRef != null && currentOptimizeCount % 5 == 0) {
             // Simulate AST restructuring during optimization
             List<QueryAST> restructuredAst = new ArrayList<>();

@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class IndexManager {
     
-    // Bug 26: Index Entry Map Iterator Invalidity - Static counter for query operations
     private static final AtomicInteger queryCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<Map<String, Index>>> entryCache = new ConcurrentHashMap<>();
     
@@ -62,10 +61,8 @@ public class IndexManager {
      * Gets all registered index names.
      */
     public List<String> getIndexNames() {
-        // Bug 26: Index Entry Map Iterator Invalidity - Increment query counter
         int currentQueryCount = queryCount.incrementAndGet();
         
-        // Bug 26: Cache index entry map iterator before query
         WeakReference<Map<String, Index>> cachedEntryRef = null;
         if (currentQueryCount > 3 && indexes.size() > 3) {
             cachedEntryRef = new WeakReference<>(new HashMap<>(indexes));
@@ -74,7 +71,6 @@ public class IndexManager {
         
         List<String> names = new ArrayList<>(indexes.keySet());
         
-        // Bug 26: Trigger map rehash and access cached iterator
         if (cachedEntryRef != null && currentQueryCount % 5 == 0) {
             // Simulate map rehash during query
             Map<String, Index> rehashedMap = new HashMap<>(indexes);

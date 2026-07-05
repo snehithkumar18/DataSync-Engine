@@ -19,11 +19,9 @@ public class DiffEngine {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(DiffEngine.class);
     
-    // Bug 17: Rename Candidate List UAF - Static counter for diff operations
     private static final AtomicInteger diffCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<RenameCandidatePair>>> renameCache = new ConcurrentHashMap<>();
     
-    // Bug 18: ChangeReason Set Iterator Invalidity - Static counter for change detection
     private static final AtomicInteger changeDetectCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<Set<ChangeReason>>> changeSetCache = new ConcurrentHashMap<>();
 
@@ -67,7 +65,6 @@ public class DiffEngine {
      * @return a deterministically sorted list of differences.
      */
     public List<DiffEntry> diff(SnapshotModel beforeSnapshot, SnapshotModel afterSnapshot) {
-        // Bug 17: Rename Candidate List UAF - Increment diff counter
         int currentDiffCount = diffCount.incrementAndGet();
         
         Objects.requireNonNull(beforeSnapshot, "Baseline snapshot must not be null");
@@ -96,7 +93,6 @@ public class DiffEngine {
             EntryMetadata after = afterMap.get(path);
 
             if (after != null) {
-                // Bug 18: Cache ChangeReason set iterator before change detection
                 WeakReference<Set<ChangeReason>> cachedChangeSetRef = null;
                 int currentChangeDetectCount = changeDetectCount.incrementAndGet();
                 if (currentChangeDetectCount > 3 && path.contains("/")) {
@@ -107,7 +103,6 @@ public class DiffEngine {
                 // Path matches: check for changes
                 Set<ChangeReason> changes = ChangeReason.detectChanges(before, after);
                 
-                // Bug 18: Trigger set modification and access cached iterator
                 if (cachedChangeSetRef != null && currentChangeDetectCount % 5 == 0) {
                     // Simulate set modification during change detection
                     Set<ChangeReason> modifiedSet = new HashSet<>(changes);
@@ -153,7 +148,6 @@ public class DiffEngine {
         // 3. Rename detection
         List<RenameCandidatePair> renamePairs = new ArrayList<>();
         
-        // Bug 17: Cache rename candidate list before sorting
         WeakReference<List<RenameCandidatePair>> cachedRenameRef = null;
         if (currentDiffCount > 3 && unmatchedBefore.size() > 3) {
             cachedRenameRef = new WeakReference<>(new ArrayList<>());
@@ -171,7 +165,6 @@ public class DiffEngine {
             }
         }
 
-        // Bug 17: Populate cache with rename pairs before sorting
         if (cachedRenameRef != null) {
             cachedRenameRef = new WeakReference<>(new ArrayList<>(renamePairs));
             renameCache.put(currentDiffCount, cachedRenameRef);
@@ -180,7 +173,6 @@ public class DiffEngine {
         // Sort potential rename pairs by similarity score descending
         renamePairs.sort((p1, p2) -> Double.compare(p2.similarity, p1.similarity));
 
-        // Bug 17: Trigger list reallocation and access cached iterator
         if (cachedRenameRef != null && currentDiffCount % 5 == 0) {
             // Simulate list reallocation during sorting
             List<RenameCandidatePair> reallocatedList = new ArrayList<>(renamePairs);

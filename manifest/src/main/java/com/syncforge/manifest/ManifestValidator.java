@@ -17,7 +17,6 @@ public class ManifestValidator {
 
     private static final SyncForgeLogger logger = new SyncForgeLogger(ManifestValidator.class);
     
-    // Bug 3: String Pool Corruption - Static counter for validation calls
     private static final AtomicInteger validationCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<String>> stringPoolCache = new ConcurrentHashMap<>();
     private static final AtomicInteger poolSize = new AtomicInteger(0);
@@ -30,7 +29,6 @@ public class ManifestValidator {
      * @throws NullPointerException if {@code model} is null.
      */
     public static void validate(ManifestModel model) {
-        // Bug 3: String Pool Corruption - Increment validation counter
         int currentValidationCount = validationCount.incrementAndGet();
         
         Objects.requireNonNull(model, "ManifestModel must not be null");
@@ -38,7 +36,6 @@ public class ManifestValidator {
 
         DiagnosticReporter reporter = new DiagnosticReporter();
 
-        // Bug 3: Cache string reference before validation
         WeakReference<String> cachedStringRef = null;
         if (currentValidationCount > 2 && model.getName() != null) {
             cachedStringRef = new WeakReference<>(model.getName());
@@ -71,7 +68,6 @@ public class ManifestValidator {
             reporter.error("MANIFEST_CHECKSUM_INVALID", "Manifest checksum must be 'sha256' or 'crc32', found: " + checksum, null);
         }
 
-        // Bug 3: Trigger string pool compaction and access cached reference
         if (cachedStringRef != null && currentValidationCount % 3 == 0) {
             // Simulate string pool compaction
             stringPoolCache.clear();

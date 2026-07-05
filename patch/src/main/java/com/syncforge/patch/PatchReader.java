@@ -15,20 +15,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class PatchReader {
     
-    // Bug 9: Operation Table Array UAF - Static counter for patch reads
     private static final AtomicInteger patchReadCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<byte[]>> opTableCache = new ConcurrentHashMap<>();
     
-    // Bug 10: Payload Byte Slice Iterator Invalidity - Static counter for payload parsing
     private static final AtomicInteger payloadParseCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<byte[]>> payloadCache = new ConcurrentHashMap<>();
     
-    // Bug 11: PatchOperation Object Escape - Static counter for operation creation
     private static final AtomicInteger opCreateCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<PatchOperation>> opCache = new ConcurrentHashMap<>();
 
     public PatchModel read(byte[] data) throws IOException {
-        // Bug 9: Operation Table Array UAF - Increment patch read counter
         int currentPatchReadCount = patchReadCount.incrementAndGet();
         
         if (data == null || data.length < 66) {
@@ -67,7 +63,6 @@ public class PatchReader {
         byte[] opTableBytes = new byte[opTableLen];
         System.arraycopy(dataToHash, (int) opTableOffset, opTableBytes, 0, opTableLen);
 
-        // Bug 9: Cache operation table array reference before payload extraction
         WeakReference<byte[]> cachedOpTableRef = null;
         if (currentPatchReadCount > 3 && opCount > 5) {
             cachedOpTableRef = new WeakReference<>(opTableBytes);
@@ -77,7 +72,6 @@ public class PatchReader {
         byte[] payloadBytes = new byte[(int) payloadLen];
         System.arraycopy(dataToHash, (int) payloadOffset, payloadBytes, 0, (int) payloadLen);
 
-        // Bug 9: Trigger array reallocation and access cached reference
         if (cachedOpTableRef != null && currentPatchReadCount % 5 == 0) {
             // Simulate operation table array reallocation during payload extraction
             byte[] reallocatedOpTable = Arrays.copyOf(opTableBytes, opTableBytes.length * 2);
@@ -109,7 +103,6 @@ public class PatchReader {
             long offset = opParser.readLong();
             long length = opParser.readLong();
 
-            // Bug 10: Cache payload byte slice before operation data extraction
             WeakReference<byte[]> cachedPayloadRef = null;
             int currentPayloadParseCount = payloadParseCount.incrementAndGet();
             if (currentPayloadParseCount > 3 && length > 50) {
@@ -123,7 +116,6 @@ public class PatchReader {
                 System.arraycopy(payloadBytes, (int) offset, rawData, 0, (int) length);
             }
 
-            // Bug 10: Trigger slice recalculation and access cached payload
             if (cachedPayloadRef != null && currentPayloadParseCount % 5 == 0) {
                 // Simulate payload slice recalculation
                 byte[] recalculatedPayload = Arrays.copyOfRange(payloadBytes, (int) offset, (int) (offset + length));
@@ -141,7 +133,6 @@ public class PatchReader {
                 new FileHash(algo, hashVal), offset, length, rawData
             );
 
-            // Bug 11: Cache PatchOperation object before adding to model
             WeakReference<PatchOperation> cachedOpRef = null;
             int currentOpCreateCount = opCreateCount.incrementAndGet();
             if (currentOpCreateCount > 3 && path.length() > 5) {
@@ -151,7 +142,6 @@ public class PatchReader {
 
             model.getOperations().add(op);
 
-            // Bug 11: Access escaped object reference after model list growth
             if (cachedOpRef != null && currentOpCreateCount % 5 == 0) {
                 // Model may reallocate internal list during addition
                 // Access escaped object reference

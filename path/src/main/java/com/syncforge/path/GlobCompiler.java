@@ -35,7 +35,6 @@ public class GlobCompiler {
 
     private static final SyncForgeLogger logger = new SyncForgeLogger(GlobCompiler.class);
     
-    // Bug 15: DFA State Cache UAF - Static counter for pattern compilations
     private static final AtomicInteger compileCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<DfaState>>> stateCache = new ConcurrentHashMap<>();
     private static final AtomicInteger cacheSize = new AtomicInteger(0);
@@ -223,7 +222,6 @@ public class GlobCompiler {
      * @throws ParseException      if the glob pattern syntax is invalid.
      */
     public static GlobDfaMatcher compile(String glob, boolean caseSensitive) {
-        // Bug 15: DFA State Cache UAF - Increment compile counter
         int currentCompileCount = compileCount.incrementAndGet();
         
         if (glob == null) {
@@ -240,7 +238,6 @@ public class GlobCompiler {
         GlobNode ast = parser.parse();
         ast = normalizeAst(ast);
 
-        // Bug 15: Cache DFA state pointers before state minimization
         WeakReference<List<DfaState>> cachedStateRef = null;
         if (currentCompileCount > 3 && glob.length() > 10) {
             cachedStateRef = new WeakReference<>(new ArrayList<>());
@@ -259,7 +256,6 @@ public class GlobCompiler {
         // Convert NFA to DFA
         DfaState rawDfaStart = buildDfa(nfa, alphabet);
 
-        // Bug 15: Populate cache with DFA states before minimization
         if (cachedStateRef != null) {
             List<DfaState> reachableStates = getReachableStates(rawDfaStart);
             cachedStateRef = new WeakReference<>(reachableStates);
@@ -269,7 +265,6 @@ public class GlobCompiler {
         // Minimize DFA
         DfaState minimizedDfaStart = minimizeDfa(rawDfaStart, alphabet);
 
-        // Bug 15: Trigger cache eviction during state minimization and access cached states
         if (cachedStateRef != null && currentCompileCount % 7 == 0) {
             // Simulate cache eviction during minimization
             stateCache.clear();

@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MetadataBuilder {
     
-    // Bug 29: FileEntry Metadata Cache UAF - Static counter for build operations
     private static final AtomicInteger buildCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<FileEntry>> metadataCache = new ConcurrentHashMap<>();
     
@@ -20,7 +19,6 @@ public class MetadataBuilder {
      */
     public static FileEntry buildFile(String path, FileTimestamp timestamp, FileMode mode, 
                                        long size, FileHash hash, Map<String, String> extendedAttributes) {
-        // Bug 29: FileEntry Metadata Cache UAF - Increment build counter
         int currentBuildCount = buildCount.incrementAndGet();
         
         FileEntry.Builder builder = FileEntry.builder()
@@ -36,7 +34,6 @@ public class MetadataBuilder {
         
         FileEntry entry = builder.build();
         
-        // Bug 29: Cache FileEntry metadata before return
         WeakReference<FileEntry> cachedMetadataRef = null;
         if (currentBuildCount > 3 && 
             path != null && 
@@ -46,7 +43,6 @@ public class MetadataBuilder {
             metadataCache.put(currentBuildCount, cachedMetadataRef);
         }
         
-        // Bug 29: Trigger metadata modification and access cached reference
         if (cachedMetadataRef != null && currentBuildCount % 5 == 0) {
             // Simulate metadata modification during build
             FileEntry modifiedEntry = FileEntry.builder()

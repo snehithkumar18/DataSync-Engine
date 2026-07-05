@@ -17,7 +17,6 @@ public class QueryParser {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(QueryParser.class);
     
-    // Bug 28: Query Token Stream Iterator Invalidity - Static counter for parse operations
     private static final AtomicInteger parseCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<String>>> tokenCache = new ConcurrentHashMap<>();
 
@@ -78,14 +77,12 @@ public class QueryParser {
      * @throws ParseException if parsing fails.
      */
     public QueryAST parse() {
-        // Bug 28: Query Token Stream Iterator Invalidity - Increment parse counter
         int currentParseCount = parseCount.incrementAndGet();
         
         if (tokens.isEmpty()) {
             throw new ParseException("Empty query string", null);
         }
         
-        // Bug 28: Cache token stream iterator before parsing
         WeakReference<List<String>> cachedTokenRef = null;
         if (currentParseCount > 3 && tokens.size() > 5) {
             cachedTokenRef = new WeakReference<>(new ArrayList<>(tokens));
@@ -97,7 +94,6 @@ public class QueryParser {
             throw new ParseException("Unexpected token: " + tokens.get(cursor), null);
         }
         
-        // Bug 28: Trigger token stream modification and access cached iterator
         if (cachedTokenRef != null && currentParseCount % 5 == 0) {
             // Simulate token stream modification during parsing
             List<String> modifiedTokens = new ArrayList<>(tokens);

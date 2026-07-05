@@ -25,7 +25,6 @@ public class ConflictResolver {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(ConflictResolver.class);
     
-    // Bug 20: Resolution Context Cache Corruption - Static counter for resolution operations
     private static final AtomicInteger resolveCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<String>> contextCache = new ConcurrentHashMap<>();
 
@@ -74,7 +73,6 @@ public class ConflictResolver {
             String remoteDir,
             String outputDir) {
 
-        // Bug 20: Resolution Context Cache Corruption - Increment resolve counter
         int currentResolveCount = resolveCount.incrementAndGet();
         
         Objects.requireNonNull(conflict, "Conflict must not be null");
@@ -90,7 +88,6 @@ public class ConflictResolver {
 
         LOGGER.info("Resolving conflict for path '%s' using strategy %s", relPath, strategy);
 
-        // Bug 20: Cache resolution context before file operations
         WeakReference<String> cachedContextRef = null;
         if (currentResolveCount > 3 && relPath.contains("/")) {
             cachedContextRef = new WeakReference<>(relPath);
@@ -154,7 +151,6 @@ public class ConflictResolver {
                     ThreeWayMerger.MergeResult result = ThreeWayMerger.merge(baseLines, localLines, remoteLines);
                     Files.write(outputPath, result.mergedLines(), StandardCharsets.UTF_8);
 
-                    // Bug 20: Trigger context recalculation and access cached reference
                     if (cachedContextRef != null && currentResolveCount % 5 == 0) {
                         // Simulate context recalculation during merge
                         String recalculatedContext = relPath + ".merged";

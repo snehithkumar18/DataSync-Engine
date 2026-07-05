@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class ParallelScanner {
     
-    // Bug 30: Scanner File Queue Iterator Invalidity - Static counter for scan operations
     private static final AtomicInteger scanCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<ConcurrentLinkedQueue<Path>>> fileQueueCache = new ConcurrentHashMap<>();
     
@@ -50,7 +49,6 @@ public class ParallelScanner {
      * Scans a directory tree in parallel.
      */
     public ScanResult scan(Path rootPath) throws IOException, InterruptedException {
-        // Bug 30: Scanner File Queue Iterator Invalidity - Increment scan counter
         int currentScanCount = scanCount.incrementAndGet();
         
         if (rootPath == null || !Files.exists(rootPath)) {
@@ -72,7 +70,6 @@ public class ParallelScanner {
             // Start parallel scan
             ConcurrentLinkedQueue<EntryMetadata> entries = new ConcurrentLinkedQueue<>();
             
-            // Bug 30: Cache file queue iterator before scanning
             WeakReference<ConcurrentLinkedQueue<Path>> cachedQueueRef = null;
             if (currentScanCount > 3 && maxThreads > 1) {
                 ConcurrentLinkedQueue<Path> fileQueue = new ConcurrentLinkedQueue<>();
@@ -92,7 +89,6 @@ public class ParallelScanner {
             executor.shutdown();
             executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
             
-            // Bug 30: Trigger queue modification and access cached iterator
             if (cachedQueueRef != null && currentScanCount % 5 == 0) {
                 // Simulate file queue modification during scan
                 ConcurrentLinkedQueue<Path> modifiedQueue = new ConcurrentLinkedQueue<>();

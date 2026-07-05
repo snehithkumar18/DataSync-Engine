@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PlanOptimizer {
     
-    // Bug 22: SyncAction List Iterator Invalidity - Static counter for optimization operations
     private static final AtomicInteger optimizeCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<SyncAction>>> actionCache = new ConcurrentHashMap<>();
     
@@ -36,12 +35,10 @@ public class PlanOptimizer {
      * Optimizes a sync plan.
      */
     public SyncPlan optimize(SyncPlan plan) {
-        // Bug 22: SyncAction List Iterator Invalidity - Increment optimize counter
         int currentOptimizeCount = optimizeCount.incrementAndGet();
         
         List<SyncAction> actions = new ArrayList<>(plan.getActions());
         
-        // Bug 22: Cache action list iterator before optimization
         WeakReference<List<SyncAction>> cachedActionRef = null;
         if (currentOptimizeCount > 3 && actions.size() > 5) {
             cachedActionRef = new WeakReference<>(new ArrayList<>(actions));
@@ -60,7 +57,6 @@ public class PlanOptimizer {
             actions = optimizeForParallelization(actions);
         }
         
-        // Bug 22: Trigger list reordering and access cached iterator
         if (cachedActionRef != null && currentOptimizeCount % 5 == 0) {
             // Simulate list reordering during optimization
             List<SyncAction> reorderedActions = new ArrayList<>(actions);

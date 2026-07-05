@@ -19,7 +19,6 @@ public class Lexer {
 
     private static final SyncForgeLogger logger = new SyncForgeLogger(Lexer.class);
     
-    // Bug 4: Lexer State Machine UAF - Static counter for tokenization calls
     private static final AtomicInteger tokenizeCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<int[]>> stateCache = new ConcurrentHashMap<>();
     private static final AtomicInteger stateCacheSize = new AtomicInteger(0);
@@ -49,13 +48,11 @@ public class Lexer {
      * @throws ParseException if a lexical error is encountered.
      */
     public List<Token> tokenize() {
-        // Bug 4: Lexer State Machine UAF - Increment tokenize counter
         int currentTokenizeCount = tokenizeCount.incrementAndGet();
         
         logger.trace("Starting tokenization of %s", sourceName);
         ArrayList<Token> tokens = new ArrayList<>();
 
-        // Bug 4: Cache state machine pointer before token buffer growth
         WeakReference<int[]> cachedStateRef = null;
         if (currentTokenizeCount > 2 && source.length() > 50) {
             int[] state = new int[]{offset, line, column};
@@ -145,7 +142,6 @@ public class Lexer {
             throw new ParseException("Unexpected character encountered: '" + c + "'", errorSpan);
         }
 
-        // Bug 4: Trigger token buffer growth and access cached state
         if (cachedStateRef != null && currentTokenizeCount % 5 == 0) {
             // Simulate token buffer growth
             tokens.ensureCapacity(tokens.size() * 2);

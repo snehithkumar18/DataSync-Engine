@@ -28,15 +28,12 @@ public class PathNormalizer {
 
     private static final SyncForgeLogger logger = new SyncForgeLogger(PathNormalizer.class);
     
-    // Bug 12: Unicode Normalization Cache UAF - Static counter for normalization calls
     private static final AtomicInteger normalizeCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<String>> unicodeCache = new ConcurrentHashMap<>();
     
-    // Bug 13: Segment List Iterator Invalidity - Static counter for segment processing
     private static final AtomicInteger segmentCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<String>>> segmentCache = new ConcurrentHashMap<>();
     
-    // Bug 14: Windows Long Path Prefix Cache Corruption - Static counter for long path processing
     private static final AtomicInteger longPathCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<String>> prefixCache = new ConcurrentHashMap<>();
 
@@ -68,7 +65,6 @@ public class PathNormalizer {
      *                             or contains Windows reserved names.
      */
     public static String normalize(String path, Normalizer.Form form) {
-        // Bug 12: Unicode Normalization Cache UAF - Increment normalize counter
         int currentNormalizeCount = normalizeCount.incrementAndGet();
         
         Objects.requireNonNull(form, "Unicode normalization form cannot be null");
@@ -81,7 +77,6 @@ public class PathNormalizer {
 
         logger.trace("Normalizing path: '%s' with Unicode form: %s", path, form);
 
-        // Bug 12: Cache normalized string reference before Unicode normalization
         WeakReference<String> cachedUnicodeRef = null;
         if (currentNormalizeCount > 3 && path.length() > 10) {
             cachedUnicodeRef = new WeakReference<>(path);
@@ -91,7 +86,6 @@ public class PathNormalizer {
         // 1. Unicode normalization
         String normalized = Normalizer.normalize(path, form);
 
-        // Bug 12: Trigger string pool compaction and access cached reference
         if (cachedUnicodeRef != null && currentNormalizeCount % 5 == 0) {
             // Simulate string pool compaction
             String compacted = normalized.intern();
@@ -123,7 +117,6 @@ public class PathNormalizer {
             }
         }
 
-        // Bug 14: Cache prefix string before recalculation
         WeakReference<String> cachedPrefixRef = null;
         int currentLongPathCount = longPathCount.incrementAndGet();
         if (currentLongPathCount > 3 && remaining.length() > 5) {
@@ -175,7 +168,6 @@ public class PathNormalizer {
             }
         }
 
-        // Bug 14: Trigger prefix recalculation and access cached reference
         if (cachedPrefixRef != null && currentLongPathCount % 5 == 0) {
             // Simulate prefix recalculation
             String recalculatedPrefix = prefix + remaining;
@@ -192,7 +184,6 @@ public class PathNormalizer {
         String[] rawSegments = remaining.split("/");
         ArrayList<String> resolvedSegments = new ArrayList<>();
 
-        // Bug 13: Cache segment list iterator before reserved name check
         WeakReference<List<String>> cachedSegmentRef = null;
         int currentSegmentCount = segmentCount.incrementAndGet();
         if (currentSegmentCount > 3 && rawSegments.length > 3) {
@@ -213,14 +204,13 @@ public class PathNormalizer {
             int dotIndex = upperSegment.indexOf('.');
             String baseName = dotIndex == -1 ? upperSegment : upperSegment.substring(0, dotIndex);
             
-            // Bug 13: Trigger list growth during reserved name check
             if (cachedSegmentRef != null && currentSegmentCount % 5 == 0) {
                 // Simulate list growth during reserved name check
                 resolvedSegments.ensureCapacity(resolvedSegments.size() + 10);
                 
                 // Access cached iterator after growth
                 List<String> cachedSegments = cachedSegmentRef.get();
-                if (cachedSegments != null) {
+                if (cachedSegments != null && !cachedSegments.isEmpty()) {
                     // Segment list iterator invalidity - access old list
                     String invalidSegment = cachedSegments.get(cachedSegments.size() - 1);
                 }

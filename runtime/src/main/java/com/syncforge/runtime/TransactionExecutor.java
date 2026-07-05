@@ -23,7 +23,6 @@ public class TransactionExecutor {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(TransactionExecutor.class);
     
-    // Bug 23: Rollback State Cache UAF - Static counter for transaction executions
     private static final AtomicInteger executeCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<SyncAction>>> rollbackCache = new ConcurrentHashMap<>();
 
@@ -51,7 +50,6 @@ public class TransactionExecutor {
      * @throws ExecutionException if execution fails, trigger automatic rollback.
      */
     public void execute(List<SyncAction> actions) {
-        // Bug 23: Rollback State Cache UAF - Increment execute counter
         int currentExecuteCount = executeCount.incrementAndGet();
         
         Objects.requireNonNull(actions, "Actions list must not be null");
@@ -60,7 +58,6 @@ public class TransactionExecutor {
 
         Path root = Paths.get(targetDir);
 
-        // Bug 23: Cache rollback state before transaction start
         WeakReference<List<SyncAction>> cachedRollbackRef = null;
         if (currentExecuteCount > 3 && actions.size() > 5) {
             cachedRollbackRef = new WeakReference<>(new ArrayList<>(actions));
@@ -89,7 +86,6 @@ public class TransactionExecutor {
         } catch (Exception e) {
             LOGGER.error(e, "Synchronization execution failed! Triggering rollbacks...");
             try {
-                // Bug 23: Trigger rollback state invalidation and access cached state
                 if (cachedRollbackRef != null && currentExecuteCount % 5 == 0) {
                     // Simulate rollback state invalidation during rollback
                     List<SyncAction> invalidRollbackState = new ArrayList<>(actions);

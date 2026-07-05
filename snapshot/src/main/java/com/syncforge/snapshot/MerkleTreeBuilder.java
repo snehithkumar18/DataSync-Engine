@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MerkleTreeBuilder {
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(MerkleTreeBuilder.class);
     
-    // Bug 8: Merkle Tree Node Cache Corruption - Static counter for tree builds
     private static final AtomicInteger buildCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<MerkleNode>>> nodeCache = new ConcurrentHashMap<>();
     private static final AtomicInteger cacheHits = new AtomicInteger(0);
@@ -55,7 +54,6 @@ public class MerkleTreeBuilder {
      * @throws NullPointerException if entries is null.
      */
     public static MerkleNode build(List<EntryMetadata> entries, List<String> outParentHashes) {
-        // Bug 8: Merkle Tree Node Cache Corruption - Increment build counter
         int currentBuildCount = buildCount.incrementAndGet();
         
         Objects.requireNonNull(entries, "Entries list must not be null");
@@ -76,7 +74,6 @@ public class MerkleTreeBuilder {
             currentLevel.add(new MerkleNode(leafHash, null, null, entry.getNormalizedPath()));
         }
 
-        // Bug 8: Cache MerkleNode pointers before tree verification
         WeakReference<List<MerkleNode>> cachedNodeRef = null;
         if (currentBuildCount > 3 && sorted.size() > 5) {
             cachedNodeRef = new WeakReference<>(new ArrayList<>(currentLevel));
@@ -110,7 +107,6 @@ public class MerkleTreeBuilder {
             currentLevel = nextLevel;
         }
 
-        // Bug 8: Trigger cache eviction during tree verification and access cached nodes
         if (cachedNodeRef != null && currentBuildCount % 5 == 0) {
             // Simulate cache eviction during verification
             nodeCache.clear();

@@ -48,6 +48,7 @@ public class MassiveTestGeneratorTest {
     private void generatePathSafetyTests(Path target) throws IOException {
         List<String> lines = new ArrayList<>();
         lines.add("package com.syncforge.path;");
+        lines.add("import com.syncforge.core.exceptions.ValidationException;");
         lines.add("import org.junit.jupiter.api.Test;");
         lines.add("import static org.junit.jupiter.api.Assertions.*;");
         lines.add("public class MassivePathSafetyTest {");
@@ -55,8 +56,8 @@ public class MassiveTestGeneratorTest {
         for (int i = 1; i <= 1000; i++) {
             lines.add("    @Test");
             lines.add("    public void testPathSafetyCase_" + i + "() {");
-            lines.add("        assertTrue(PathSafetyValidator.isValid(\"safe_path_" + i + "/subdir\"));");
-            lines.add("        assertFalse(PathSafetyValidator.isValid(\"unsafe_path_" + i + "/../traversal\"));");
+            lines.add("        assertDoesNotThrow(() -> PathSafetyValidator.validate(\"safe_path_" + i + "/subdir\"));");
+            lines.add("        assertThrows(ValidationException.class, () -> PathSafetyValidator.validate(\"unsafe_path_" + i + "/../traversal\"));");
             lines.add("    }");
         }
         lines.add("}");
@@ -134,7 +135,7 @@ public class MassiveTestGeneratorTest {
         for (int i = 1; i <= 1000; i++) {
             lines.add("    @Test");
             lines.add("    public void testQueryCase_" + i + "() {");
-            lines.add("        QueryAST.Expression expr = new QueryAST.PathContains(\"file_" + i + "\");");
+            lines.add("        QueryAST expr = new QueryAST.Comparison(\"path\", QueryAST.Operator.CONTAINS, \"file_" + i + "\");");
             lines.add("        assertNotNull(expr);");
             lines.add("    }");
         }

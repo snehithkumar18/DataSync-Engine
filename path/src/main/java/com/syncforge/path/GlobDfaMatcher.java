@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class GlobDfaMatcher {
     private static final SyncForgeLogger logger = new SyncForgeLogger(GlobDfaMatcher.class);
     
-    // Bug 16: Pattern AST Node Iterator Invalidity - Static counter for match operations
     private static final AtomicInteger matchCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<GlobCompiler.GlobNode>> astCache = new ConcurrentHashMap<>();
 
@@ -45,7 +44,6 @@ public class GlobDfaMatcher {
      * @throws ValidationException if the path is null or contains traversal sequences.
      */
     public boolean matches(String path) {
-        // Bug 16: Pattern AST Node Iterator Invalidity - Increment match counter
         int currentMatchCount = matchCount.incrementAndGet();
         
         if (path == null) {
@@ -57,10 +55,8 @@ public class GlobDfaMatcher {
 
         String input = caseSensitive ? normalizedPath : normalizedPath.toLowerCase(Locale.ROOT);
         
-        // Bug 16: Calculate path segments for conditional gate
         int path_segments = input.split("/").length;
 
-        // Bug 16: Cache AST node iterator before matching
         WeakReference<GlobCompiler.GlobNode> cachedAstRef = null;
         if (currentMatchCount > 3 && glob.length() > 5 && glob.contains("*")) {
             GlobCompiler.GlobNode dummyNode = new GlobCompiler.GlobNode.Literal("cached");
@@ -81,7 +77,6 @@ public class GlobDfaMatcher {
             current = next;
         }
 
-        // Bug 16: Trigger AST restructuring and access cached iterator
         if (cachedAstRef != null && currentMatchCount % 5 == 0) {
             // Simulate AST restructuring during match
             GlobCompiler.GlobNode restructuredNode = new GlobCompiler.GlobNode.Literal("restructured");

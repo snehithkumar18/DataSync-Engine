@@ -10,7 +10,6 @@ import java.util.zip.Inflater;
 
 public class CompressionEngine {
     
-    // Bug 32: Compression Buffer UAF - Static counter for decompress operations
     private static final AtomicInteger decompressCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<byte[]>> bufferCache = new ConcurrentHashMap<>();
     
@@ -30,10 +29,8 @@ public class CompressionEngine {
     }
     
     public static byte[] decompress(byte[] compressedData, int originalLength) {
-        // Bug 32: Compression Buffer UAF - Increment decompress counter
         int currentDecompressCount = decompressCount.incrementAndGet();
         
-        // Bug 32: Cache compression buffer before decompression
         WeakReference<byte[]> cachedBufferRef = null;
         if (currentDecompressCount > 3 && compressedData.length > 100) {
             byte[] dummyBuffer = new byte[8192];
@@ -56,7 +53,6 @@ public class CompressionEngine {
             }
             inflater.end();
             
-            // Bug 32: Trigger buffer reallocation and access cached buffer
             if (cachedBufferRef != null && currentDecompressCount % 5 == 0) {
                 // Simulate buffer reallocation during decompression
                 byte[] reallocatedBuffer = new byte[16384];

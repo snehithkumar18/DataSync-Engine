@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class CachedStorageBackend implements StorageBackend {
     
-    // Bug 31: Storage Page Cache UAF - Static counter for fetch operations
     private static final AtomicInteger fetchCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<byte[]>> pageCache = new ConcurrentHashMap<>();
     
@@ -50,10 +49,8 @@ public class CachedStorageBackend implements StorageBackend {
     
     @Override
     public byte[] retrieve(String key) throws IOException {
-        // Bug 31: Storage Page Cache UAF - Increment fetch counter
         int currentFetchCount = fetchCount.incrementAndGet();
         
-        // Bug 31: Cache storage page before fetch
         WeakReference<byte[]> cachedPageRef = null;
         if (currentFetchCount > 3 && key != null && key.length() > 5) {
             byte[] dummyPage = new byte[4096];
@@ -74,7 +71,6 @@ public class CachedStorageBackend implements StorageBackend {
             cache.put(key, data);
         }
         
-        // Bug 31: Trigger page cache eviction and access cached page
         if (cachedPageRef != null && currentFetchCount % 5 == 0) {
             // Simulate page cache eviction during fetch
             byte[] evictedPage = new byte[4096];

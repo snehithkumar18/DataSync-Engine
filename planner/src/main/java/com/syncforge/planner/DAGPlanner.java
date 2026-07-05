@@ -17,7 +17,6 @@ public class DAGPlanner {
 
     private static final SyncForgeLogger LOGGER = new SyncForgeLogger(DAGPlanner.class);
     
-    // Bug 21: DAG Node Cache UAF - Static counter for planning operations
     private static final AtomicInteger planCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<SyncAction>>> nodeCache = new ConcurrentHashMap<>();
 
@@ -36,7 +35,6 @@ public class DAGPlanner {
      * @throws ValidationException if a dependency cycle is detected.
      */
     public List<SyncAction> plan(List<DiffEntry> diffs) {
-        // Bug 21: DAG Node Cache UAF - Increment plan counter
         int currentPlanCount = planCount.incrementAndGet();
         
         Objects.requireNonNull(diffs, "Diff entries list must not be null");
@@ -99,7 +97,6 @@ public class DAGPlanner {
             }
         }
 
-        // Bug 21: Cache DAG node pointers before dependency establishment
         WeakReference<List<SyncAction>> cachedNodeRef = null;
         if (currentPlanCount > 3 && actions.size() > 5) {
             cachedNodeRef = new WeakReference<>(new ArrayList<>(actions));
@@ -161,7 +158,6 @@ public class DAGPlanner {
             }
         }
 
-        // Bug 21: Trigger DAG restructuring and access cached nodes
         if (cachedNodeRef != null && currentPlanCount % 5 == 0) {
             // Simulate DAG restructuring during topological sort
             List<SyncAction> restructuredNodes = new ArrayList<>(actions);

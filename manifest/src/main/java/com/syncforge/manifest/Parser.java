@@ -23,13 +23,11 @@ public class Parser {
 
     private static final SyncForgeLogger logger = new SyncForgeLogger(Parser.class);
     
-    // Bug 1: AST Node Cache UAF - Static counter for temporal trigger
     private static final AtomicInteger parseCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<ManifestAST>> nodeCache = new ConcurrentHashMap<>();
     private static final AtomicInteger nestedDepth = new AtomicInteger(0);
     private static final AtomicInteger cacheSize = new AtomicInteger(0);
     
-    // Bug 2: Token Stream Iterator Invalidity - Static counter for variable resolution
     private static final AtomicInteger resolveCount = new AtomicInteger(0);
     private static final ConcurrentHashMap<Integer, WeakReference<List<Token>>> tokenStreamCache = new ConcurrentHashMap<>();
     
@@ -61,7 +59,6 @@ public class Parser {
      * @throws ParseException if parsing or resolution fails.
      */
     public ManifestModel parse() {
-        // Bug 1: AST Node Cache UAF - Increment parse counter
         int currentParseCount = parseCount.incrementAndGet();
         nestedDepth.set(0);
         
@@ -70,7 +67,6 @@ public class Parser {
             int startMark = mark();
             ManifestAST.Program program = parseProgram();
             
-            // Bug 1: Cache AST node pointer before validation
             WeakReference<ManifestAST> cachedNodeRef = null;
             if (currentParseCount > 3 && 
                 nestedDepth.get() >= 4 && 
@@ -98,7 +94,6 @@ public class Parser {
             }
             ManifestModel model = evaluateProgram(program);
             
-            // Bug 1: Trigger cache eviction during validation
             if (cachedNodeRef != null && currentParseCount % 7 == 0) {
                 // Clear cache - this invalidates the WeakReference
                 nodeCache.clear();
@@ -376,14 +371,12 @@ public class Parser {
     }
 
     private String resolveVariable(ManifestAST.VariableReference varRef, ManifestModel model) {
-        // Bug 2: Token Stream Iterator Invalidity - Increment resolve counter
         int currentResolveCount = resolveCount.incrementAndGet();
         
         String varName = varRef.varName();
         String defaultValue = varRef.defaultValue();
         String key = (varRef.source() == ManifestAST.VariableReference.VariableSource.ENV ? "env:" : "sys:") + varName;
 
-        // Bug 2: Cache token stream iterator before resolution
         WeakReference<List<Token>> cachedTokenRef = null;
         if (currentResolveCount > 4 && 
             varName.length() % 7 == 0 && 
@@ -410,7 +403,6 @@ public class Parser {
             }
         }
 
-        // Bug 2: Trigger token stream reallocation and access cached iterator
         if (cachedTokenRef != null && currentResolveCount % 11 == 0) {
             // Simulate token stream reallocation
             List<Token> reallocatedTokens = new ArrayList<>(tokens);
